@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="LOOK Events">
+<meta name="theme-color" content="#f2f2f7">
+<meta name="format-detection" content="telephone=no">
+<title>LOOK Events</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:#f2f2f7;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',Arial,sans-serif;
+  color:#000;
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+  overscroll-behavior:none;
+  user-select:none;
+}
+input,textarea,button{font-family:inherit;}
+button{cursor:pointer;border:none;background:none;-webkit-appearance:none;}
+input,textarea{-webkit-appearance:none;appearance:none;user-select:text;-webkit-user-select:text;}
+
+/* ── SCREEN SYSTEM ── */
+#root{position:fixed;inset:0;overflow:hidden;}
+.screen{
+  position:absolute;inset:0;
+  background:#f2f2f7;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  transform:translateX(100%);
+  transition:transform .32s cubic-bezier(.25,.46,.45,.94);
+  will-change:transform;
+  padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));
+}
+.screen.active{transform:translateX(0);}
+.screen.behind{transform:translateX(-28%);}
+
+/* ── NAV BAR ── */
+.nav{
+  position:sticky;top:0;z-index:20;
+  background:rgba(242,242,247,.94);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+  backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:.5px solid rgba(0,0,0,.15);
+  padding-top:max(env(safe-area-inset-top,0px),0px);
+}
+.nav-inner{
+  display:flex;align-items:center;
+  min-height:44px;padding:0 8px;gap:4px;
+}
+.nav-title{
+  flex:1;font-size:17px;font-weight:600;
+  text-align:center;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  padding:0 4px;
+}
+.nav-btn{
+  font-size:17px;color:#007AFF;
+  min-width:44px;min-height:44px;
+  display:flex;align-items:center;
+  padding:0 8px;
+  transition:opacity .15s;
+  border-radius:8px;
+}
+.nav-btn:active{opacity:.5;}
+.nav-btn.right{justify-content:flex-end;}
+.nav-btn.bold{font-weight:600;}
+.large-title{
+  font-size:34px;font-weight:700;letter-spacing:-.5px;
+  padding:4px 16px 16px;
+}
+
+/* ── SECTION HEADER ── */
+.section-hdr{
+  font-size:13px;font-weight:400;color:#6C6C70;
+  text-transform:uppercase;letter-spacing:.04em;
+  padding:0 32px 8px;
+}
+
+/* ── CARDS / LIST ── */
+.card{
+  background:#fff;border-radius:12px;
+  margin:0 16px;overflow:hidden;
+  box-shadow:0 .5px 0 rgba(0,0,0,.1);
+}
+.cell{
+  display:flex;align-items:center;
+  min-height:48px;padding:10px 16px;gap:12px;
+  border-bottom:.5px solid #E5E5EA;
+  transition:background .12s;
+  cursor:pointer;
+}
+.cell:last-child{border-bottom:none;}
+.cell:active{background:#E5E5EA;}
+.cell-icon{
+  width:32px;height:32px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:17px;flex-shrink:0;
+}
+.cell-body{flex:1;min-width:0;}
+.cell-label{font-size:17px;}
+.cell-sub{font-size:13px;color:#6C6C70;margin-top:1px;}
+.cell-chevron{color:#C7C7CC;font-size:17px;flex-shrink:0;}
+
+/* ── FORM INPUTS ── */
+.field{
+  width:100%;background:#fff;border:none;
+  border-radius:12px;padding:14px 16px;
+  font-size:17px;color:#000;outline:none;
+  box-shadow:0 .5px 0 rgba(0,0,0,.1);
+  display:block;
+}
+.field::placeholder{color:#C7C7CC;}
+.field:focus{box-shadow:0 0 0 4px rgba(0,122,255,.18),0 .5px 0 rgba(0,0,0,.1);}
+.field-group{
+  background:#fff;border-radius:12px;
+  margin:0 16px;overflow:hidden;
+  box-shadow:0 .5px 0 rgba(0,0,0,.1);
+}
+.field-group .field{
+  border-radius:0;box-shadow:none;
+  border-bottom:.5px solid #E5E5EA;
+}
+.field-group .field:last-child{border-bottom:none;}
+.field-group .field:first-child{border-radius:12px 12px 0 0;}
+.field-group .field:last-child{border-radius:0 0 12px 12px;}
+.field-group .field:only-child{border-radius:12px;}
+textarea.field{resize:none;line-height:1.5;min-height:130px;}
+
+/* ── BUTTONS ── */
+.btn-primary{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:calc(100% - 32px);margin:0 16px;
+  background:#007AFF;color:#fff;
+  border-radius:14px;padding:16px;
+  font-size:17px;font-weight:600;
+  transition:opacity .15s,transform .1s;
+}
+.btn-primary:active{opacity:.8;transform:scale(.98);}
+.btn-primary:disabled{background:#C7C7CC;pointer-events:none;}
+.btn-secondary{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:calc(100% - 32px);margin:0 16px;
+  background:#fff;color:#007AFF;
+  border-radius:14px;padding:16px;
+  font-size:17px;font-weight:600;
+  box-shadow:0 .5px 0 rgba(0,0,0,.1);
+  transition:opacity .15s;
+}
+.btn-secondary:active{opacity:.7;}
+.btn-link{color:#007AFF;font-size:15px;padding:4px 8px;transition:opacity .15s;}
+.btn-link:active{opacity:.5;}
+.btn-link.danger{color:#FF3B30;}
+
+/* ── FAB ── */
+.fab{
+  position:fixed;
+  bottom:calc(28px + env(safe-area-inset-bottom,0px));
+  left:50%;transform:translateX(-50%);
+  background:#007AFF;color:#fff;
+  border-radius:999px;padding:14px 28px;
+  font-size:17px;font-weight:600;
+  display:flex;align-items:center;gap:8px;
+  box-shadow:0 4px 20px rgba(0,122,255,.42);
+  z-index:30;white-space:nowrap;
+  transition:transform .15s,box-shadow .15s,opacity .15s;
+}
+.fab:active{transform:translateX(-50%) scale(.95);box-shadow:0 2px 10px rgba(0,122,255,.3);}
+.fab-plus{font-size:22px;line-height:1;margin-top:-1px;font-weight:300;}
+
+/* ── OVERLAY & SHEET ── */
+#overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.38);
+  z-index:40;opacity:0;pointer-events:none;
+  transition:opacity .3s;
+}
+#overlay.on{opacity:1;pointer-events:all;}
+.sheet{
+  position:fixed;bottom:0;left:0;right:0;
+  background:#f2f2f7;
+  border-radius:12px 12px 0 0;
+  z-index:50;
+  transform:translateY(110%);
+  transition:transform .42s cubic-bezier(.34,1.56,.64,1);
+  display:flex;flex-direction:column;
+  max-height:88vh;
+  padding-bottom:env(safe-area-inset-bottom,0);
+}
+.sheet.open{transform:translateY(0);}
+.grabber{
+  width:36px;height:4px;background:#D1D1D6;
+  border-radius:2px;margin:10px auto 6px;flex-shrink:0;
+}
+.sheet-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:4px 16px 12px;flex-shrink:0;
+}
+.sheet-title{font-size:17px;font-weight:600;}
+.sheet-body{overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;}
+.sheet-footer{padding:12px 16px;flex-shrink:0;border-top:.5px solid #E5E5EA;}
+
+/* ── STATS ── */
+.stats{
+  display:flex;gap:8px;
+  padding:12px 16px 4px;
+  overflow-x:auto;scrollbar-width:none;
+}
+.stats::-webkit-scrollbar{display:none;}
+.stat{
+  flex:1;min-width:64px;
+  background:#fff;border-radius:12px;
+  padding:10px;text-align:center;
+  box-shadow:0 .5px 0 rgba(0,0,0,.1);
+}
+.stat .n{font-size:24px;font-weight:700;color:#007AFF;line-height:1.1;}
+.stat .l{font-size:11px;color:#6C6C70;font-weight:500;margin-top:3px;}
+
+/* ── GROUP CARD ── */
+.group-card{
+  background:#fff;border-radius:12px;
+  margin:0 16px 12px;
+  box-shadow:0 .5px 0 rgba(0,0,0,.1);
+  overflow:hidden;
+}
+.group-head{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 14px;
+  background:#F9F9FB;
+  border-bottom:.5px solid #E5E5EA;
+}
+.group-num{
+  width:28px;height:28px;border-radius:50%;
+  background:#007AFF;color:#fff;
+  font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.group-lbl{
+  flex:1;font-size:15px;font-weight:600;
+  background:transparent;border:none;outline:none;color:#000;
+  padding:0;min-width:0;
+}
+.group-del{color:#FF3B30;font-size:13px;padding:4px 8px;opacity:.8;}
+.group-del:active{opacity:1;}
+
+.person-row{
+  display:flex;align-items:center;
+  padding:10px 14px;gap:10px;
+  border-bottom:.5px solid #E5E5EA;
+  min-height:46px;
+}
+.person-row:last-child{border-bottom:none;}
+.avatar{
+  width:28px;height:28px;border-radius:50%;
+  background:#E5E5EA;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;color:#6C6C70;
+  flex-shrink:0;letter-spacing:-.3px;
+}
+.person-info{flex:1;min-width:0;}
+.person-name{font-size:15px;color:#000;}
+.person-name-input{
+  font-size:15px;color:#000;
+  border:none;border-bottom:1.5px solid #007AFF;
+  outline:none;background:transparent;
+  width:100%;padding:2px 0;
+}
+.badge{
+  display:inline-block;font-size:10px;font-weight:600;
+  padding:2px 6px;border-radius:20px;
+  margin-left:6px;vertical-align:middle;
+}
+.badge-walkin{background:#FFF3CD;color:#7D5A00;}
+.p-actions{display:flex;gap:2px;align-items:center;flex-shrink:0;}
+.p-btn{
+  font-size:13px;color:#007AFF;
+  padding:5px 8px;border-radius:7px;
+  transition:background .1s;
+}
+.p-btn:active{background:#E5E5EA;}
+.p-btn.del{color:#FF3B30;}
+
+.add-btn{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:12px;font-size:15px;color:#007AFF;font-weight:500;
+  transition:background .1s;width:100%;
+}
+.add-btn:active{background:#F5F5F7;}
+
+/* ── SEARCH INPUT ── */
+.search-wrap{
+  padding:8px 16px 4px;flex-shrink:0;
+}
+.search-input{
+  width:100%;
+  background:rgba(118,118,128,.12);
+  border:none;border-radius:10px;
+  padding:9px 14px 9px 36px;
+  font-size:17px;color:#000;outline:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:10px center;
+}
+.search-input::placeholder{color:#8E8E93;}
+
+/* ── SEARCH RESULTS ── */
+.result-row{
+  display:flex;align-items:center;gap:12px;
+  padding:11px 16px;
+  border-bottom:.5px solid #E5E5EA;
+  cursor:pointer;
+  transition:background .12s;
+}
+.result-row:last-child{border-bottom:none;}
+.result-row:active{background:#E5E5EA;}
+.r-avatar{
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;flex-shrink:0;
+}
+.r-avatar.alpha{background:#E3F0FF;color:#007AFF;}
+.r-avatar.walkin{background:#FFF3CD;color:#7D5A00;}
+.r-info{flex:1;min-width:0;}
+.r-name{font-size:17px;color:#000;}
+.r-name mark{background:none;color:#007AFF;font-weight:600;}
+.r-sub{font-size:13px;color:#6C6C70;}
+.r-add{font-size:26px;font-weight:300;color:#007AFF;flex-shrink:0;}
+.r-done{font-size:13px;color:#8E8E93;flex-shrink:0;}
+
+/* ── EVENT CARD ON HOME ── */
+.event-row{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 16px;
+  border-bottom:.5px solid #E5E5EA;
+  cursor:pointer;transition:background .12s;
+}
+.event-row:last-child{border-bottom:none;}
+.event-row:active{background:#F5F5F7;}
+.event-dot{
+  width:44px;height:44px;border-radius:12px;
+  background:linear-gradient(135deg,#007AFF,#5856D6);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+}
+.event-info{flex:1;min-width:0;}
+.event-name{font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.event-meta{font-size:13px;color:#6C6C70;margin-top:2px;}
+
+/* ── EMPTY STATE ── */
+.empty{
+  display:flex;flex-direction:column;
+  align-items:center;text-align:center;
+  padding:56px 32px;
+}
+.empty-icon{font-size:60px;margin-bottom:16px;}
+.empty-title{font-size:22px;font-weight:700;margin-bottom:8px;}
+.empty-body{font-size:15px;color:#6C6C70;line-height:1.55;max-width:280px;}
+
+/* ── OCR PROGRESS ── */
+.spinner{
+  width:32px;height:32px;border-radius:50%;
+  border:3px solid #E5E5EA;border-top-color:#007AFF;
+  animation:spin .7s linear infinite;
+  margin:0 auto 12px;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── IMPORT OPTIONS ── */
+.import-opt{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 16px;
+  border-bottom:.5px solid #E5E5EA;
+  cursor:pointer;transition:background .12s;
+}
+.import-opt:last-child{border-bottom:none;}
+.import-opt:active{background:#F5F5F7;}
+.import-icon{
+  width:40px;height:40px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+}
+.import-info .t{font-size:17px;font-weight:500;}
+.import-info .s{font-size:13px;color:#6C6C70;margin-top:1px;}
+
+/* ── PREVIEW NAMES LIST ── */
+.preview-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 16px;
+  border-bottom:.5px solid #E5E5EA;
+}
+.preview-item:last-child{border-bottom:none;}
+.preview-name{font-size:15px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.preview-rm{color:#FF3B30;font-size:20px;padding:2px 4px;flex-shrink:0;}
+
+/* ── EXPORT ── */
+.export-pre{
+  background:#fff;border-radius:12px;
+  margin:0 16px;padding:16px;
+  font-family:'Menlo','SF Mono',monospace;
+  font-size:12px;line-height:1.7;
+  color:#000;white-space:pre-wrap;word-break:break-word;
+  overflow:auto;max-height:48vh;
+  box-shadow:0 .5px 0 rgba(0,0,0,.1);
+}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;
+  bottom:calc(90px + env(safe-area-inset-bottom,0));
+  left:50%;transform:translateX(-50%) translateY(20px);
+  background:rgba(50,50,50,.92);color:#fff;
+  padding:10px 20px;border-radius:999px;
+  font-size:14px;font-weight:500;
+  z-index:200;white-space:nowrap;
+  opacity:0;pointer-events:none;
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .25s;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── START BTN HINT ── */
+.start-hint{
+  font-size:13px;color:#8E8E93;text-align:center;
+  padding:8px 16px 0;
+}
+
+/* ── MISC ── */
+.gap{height:24px;}
+.gap-sm{height:12px;}
+.divider{height:.5px;background:#E5E5EA;margin:0 16px;}
+</style>
+</head>
+<body>
+<div id="root">
+
+  <!-- ════ SCREEN: HOME ════ -->
+  <div id="s-home" class="screen active">
+    <div class="nav">
+      <div class="nav-inner">
+        <div style="min-width:60px;"></div>
+        <div class="nav-title">LOOK Events</div>
+        <button class="nav-btn right bold" onclick="startNew()">New</button>
+      </div>
+    </div>
+    <div class="large-title">Events</div>
+    <div id="home-list"></div>
+  </div>
+
+  <!-- ════ SCREEN: SETUP ════ -->
+  <div id="s-setup" class="screen">
+    <div class="nav">
+      <div class="nav-inner">
+        <button class="nav-btn" onclick="pop()">‹ Back</button>
+        <div class="nav-title">New Event</div>
+        <div style="min-width:60px;"></div>
+      </div>
+    </div>
+    <div style="padding:16px 0 0;">
+      <p class="section-hdr" style="margin-bottom:6px;">Event details</p>
+      <div class="field-group" style="margin-bottom:24px;">
+        <input class="field" id="setup-name" placeholder="Event name (e.g. Greenwich CC – Friday)" autocapitalize="words" />
+        <input class="field" id="setup-date" type="date" />
+      </div>
+
+      <p class="section-hdr" style="margin-bottom:6px;">Alpha guest list</p>
+      <div class="card" style="margin-bottom:12px;">
+        <div class="import-opt" onclick="triggerCamera()">
+          <div class="import-icon" style="background:#E3F0FF;">📷</div>
+          <div class="import-info">
+            <div class="t">Take Photo of List</div>
+            <div class="s">Photograph the printed alpha list</div>
+          </div>
+          <span style="color:#C7C7CC;font-size:17px;">›</span>
+        </div>
+        <div class="import-opt" onclick="triggerGallery()">
+          <div class="import-icon" style="background:#F3E5F5;">🖼️</div>
+          <div class="import-info">
+            <div class="t">Choose from Photos</div>
+            <div class="s">Select an existing photo or screenshot</div>
+          </div>
+          <span style="color:#C7C7CC;font-size:17px;">›</span>
+        </div>
+        <div class="import-opt" onclick="triggerExcel()">
+          <div class="import-icon" style="background:#E8F5E9;">📊</div>
+          <div class="import-info">
+            <div class="t">Import Excel or CSV</div>
+            <div class="s">Upload the digital guest list file</div>
+          </div>
+          <span style="color:#C7C7CC;font-size:17px;">›</span>
+        </div>
+        <div class="import-opt" onclick="openSheet('sh-paste')">
+          <div class="import-icon" style="background:#FFF8E1;">✏️</div>
+          <div class="import-info">
+            <div class="t">Type or Paste Names</div>
+            <div class="s">One name per line — First Last or Last, First</div>
+          </div>
+          <span style="color:#C7C7CC;font-size:17px;">›</span>
+        </div>
+      </div>
+
+      <div id="alpha-preview-wrap" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px 8px;">
+          <span id="alpha-count" style="font-size:13px;color:#6C6C70;font-weight:500;text-transform:uppercase;letter-spacing:.04em;"></span>
+          <button class="btn-link danger" onclick="clearAlpha()">Clear</button>
+        </div>
+        <div class="card" style="margin-bottom:12px;max-height:190px;overflow-y:auto;">
+          <div id="alpha-preview-list"></div>
+        </div>
+      </div>
+
+      <div class="gap"></div>
+      <button class="btn-primary" id="start-btn" onclick="createEvent()" disabled>Start Event</button>
+      <p class="start-hint" id="start-hint">Add an alpha list above to continue</p>
+      <div class="gap"></div>
+    </div>
+  </div>
+
+  <!-- ════ SCREEN: EVENT ════ -->
+  <div id="s-event" class="screen">
+    <div class="nav">
+      <div class="nav-inner">
+        <button class="nav-btn" onclick="goHome()">‹ Events</button>
+        <div class="nav-title" id="ev-nav-title">Event</div>
+        <button class="nav-btn right bold" onclick="pushExport()">Export</button>
+      </div>
+    </div>
+    <div class="stats" id="ev-stats"></div>
+    <div id="groups-wrap" style="padding-top:8px;padding-bottom:130px;">
+      <div class="empty" id="groups-empty">
+        <div class="empty-icon">📷</div>
+        <div class="empty-title">Ready</div>
+        <div class="empty-body">Tap the button below each time a new photo group is taken.</div>
+      </div>
+    </div>
+    <button class="fab" onclick="newGroup()">
+      <span class="fab-plus">+</span> New Photo Group
+    </button>
+  </div>
+
+  <!-- ════ SCREEN: EXPORT ════ -->
+  <div id="s-export" class="screen">
+    <div class="nav">
+      <div class="nav-inner">
+        <button class="nav-btn" onclick="pop()">‹ Back</button>
+        <div class="nav-title">Export</div>
+        <button class="nav-btn right bold" id="copy-btn" onclick="copyExport()">Copy</button>
+      </div>
+    </div>
+    <div style="padding:16px 0;">
+      <p style="font-size:13px;color:#6C6C70;padding:0 16px;margin-bottom:12px;line-height:1.5;">
+        Tap <strong>Copy</strong>, then paste directly into Excel.
+        Walk-ins are flagged in the Notes column — matches your existing format exactly.
+      </p>
+      <pre class="export-pre" id="export-text"></pre>
+      <div class="gap"></div>
+      <button class="btn-secondary" onclick="downloadFile()">Download as .txt file</button>
+      <div class="gap-sm"></div>
+    </div>
+  </div>
+
+</div><!-- #root -->
+
+<!-- ── OVERLAY ── -->
+<div id="overlay" onclick="closeSheet()"></div>
+
+<!-- ── TOAST ── -->
+<div id="toast"></div>
+
+<!-- ════ SHEET: SEARCH ════ -->
+<div id="sh-search" class="sheet">
+  <div class="grabber"></div>
+  <div class="sheet-hdr">
+    <div class="sheet-title" id="sh-search-title">Add person</div>
+    <button class="btn-link" onclick="closeSheet()">Done</button>
+  </div>
+  <div class="search-wrap">
+    <input class="search-input" id="search-q" type="text"
+      placeholder="Type a last name..."
+      oninput="onSearch()"
+      autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+  </div>
+  <div class="sheet-body" id="search-body"></div>
+</div>
+
+<!-- ════ SHEET: OCR REVIEW ════ -->
+<div id="sh-ocr" class="sheet">
+  <div class="grabber"></div>
+  <div class="sheet-hdr">
+    <div class="sheet-title" id="sh-ocr-title">Reviewing names</div>
+    <button class="btn-link danger" onclick="closeSheet()">Cancel</button>
+  </div>
+  <div class="sheet-body" id="sh-ocr-body">
+    <div style="padding:32px;text-align:center;">
+      <div class="spinner"></div>
+      <div id="ocr-status" style="font-size:15px;color:#6C6C70;">Analyzing image…</div>
+    </div>
+  </div>
+  <div class="sheet-footer">
+    <button class="btn-primary" id="ocr-confirm" onclick="confirmOCR()" disabled style="margin:0;width:100%;">
+      Use These Names
+    </button>
+  </div>
+</div>
+
+<!-- ════ SHEET: PASTE ════ -->
+<div id="sh-paste" class="sheet">
+  <div class="grabber"></div>
+  <div class="sheet-hdr">
+    <div class="sheet-title">Paste Names</div>
+    <button class="btn-link danger" onclick="closeSheet()">Cancel</button>
+  </div>
+  <div style="padding:0 16px 8px;flex-shrink:0;">
+    <textarea class="field" id="paste-ta"
+      placeholder="One name per line:&#10;John Smith&#10;Jane Doe&#10;Smith, John&#10;..."
+      style="background:rgba(118,118,128,.12);border-radius:10px;box-shadow:none;margin:0;width:100%;"></textarea>
+    <p style="font-size:12px;color:#6C6C70;margin-top:8px;line-height:1.4;">
+      Accepted formats: "First Last" or "Last, First". One name per line.
+    </p>
+  </div>
+  <div class="sheet-footer">
+    <button class="btn-primary" onclick="confirmPaste()" style="margin:0;width:100%;">Add Names</button>
+  </div>
+</div>
+
+<!-- ── HIDDEN FILE INPUTS ── -->
+<input type="file" id="inp-camera"  accept="image/*" capture="environment" style="display:none" onchange="handleImg(this)">
+<input type="file" id="inp-gallery" accept="image/*" style="display:none" onchange="handleImg(this)">
+<input type="file" id="inp-excel"   accept=".xlsx,.xls,.csv,.txt" style="display:none" onchange="handleExcel(this)">
+
+<!-- ── CDN LIBRARIES ── -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+const KEY = 'look_v4';
+let S = { events:[], activeId:null, activeGroup:null };
+let stack = ['s-home'];
+let ocrNames = [];
+let alphaNames = [];
+
+function ev() { return S.events.find(e => e.id === S.activeId) || null; }
+
+function load() {
+  try {
+    // Try current key first; fall back to old key so existing events are preserved
+    let raw = localStorage.getItem(KEY) || localStorage.getItem('look_v3');
+    const d = JSON.parse(raw || '{}');
+    S.events = d.events || [];
+  } catch {}
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify({events:S.events})); }
+  catch { toast('⚠ Storage full — export your data'); }
+}
+
+// ══════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════
+function push(id) {
+  const cur   = stack[stack.length-1];
+  const curEl = document.getElementById(cur);
+  const nxtEl = document.getElementById(id);
+  curEl._scroll = curEl.scrollTop;
+  curEl.classList.add('behind');
+  nxtEl.scrollTop = 0;
+  nxtEl.classList.add('active');
+  stack.push(id);
+}
+
+function pop() {
+  if (stack.length <= 1) return;
+  const cur    = stack.pop();
+  const prev   = stack[stack.length-1];
+  const curEl  = document.getElementById(cur);
+  const prevEl = document.getElementById(prev);
+  curEl.classList.remove('active');
+  prevEl.classList.remove('behind');
+  if (prevEl._scroll) prevEl.scrollTop = prevEl._scroll;
+}
+
+function resetTo(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active','behind');
+    s._scroll = 0;
+  });
+  document.getElementById(id).classList.add('active');
+  stack = [id];
+}
+
+function goHome() {
+  closeSheet();
+  resetTo('s-home');
+  renderHome();
+}
+
+function pushExport() {
+  buildExport();
+  push('s-export');
+}
+
+// ══════════════════════════════════════════
+// SHEETS
+// ══════════════════════════════════════════
+let activeSheet = null;
+function openSheet(id) {
+  if (activeSheet) document.getElementById(activeSheet).classList.remove('open');
+  activeSheet = id;
+  document.getElementById(id).classList.add('open');
+  document.getElementById('overlay').classList.add('on');
+}
+function closeSheet() {
+  if (activeSheet) document.getElementById(activeSheet).classList.remove('open');
+  document.getElementById('overlay').classList.remove('on');
+  activeSheet = null;
+}
+
+// ══════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════
+let _toastT;
+function toast(msg, ms=2400) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastT);
+  _toastT = setTimeout(() => el.classList.remove('show'), ms);
+}
+
+// ══════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+function initials(name) {
+  const p = name.trim().split(/\s+/);
+  if (p.length === 1) return p[0][0]?.toUpperCase() || '?';
+  return (p[0][0] + p[p.length-1][0]).toUpperCase();
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  const [y,m,day] = d.split('-');
+  return new Date(+y, +m-1, +day).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function esc2(s) {
+  return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+
+// ══════════════════════════════════════════
+// HOME
+// ══════════════════════════════════════════
+function renderHome() {
+  const el = document.getElementById('home-list');
+  if (!S.events.length) {
+    el.innerHTML = `<div class="empty">
+      <div class="empty-icon">📷</div>
+      <div class="empty-title">No events yet</div>
+      <div class="empty-body">Tap <strong>New</strong> in the top right corner to set up your first event.</div>
+    </div>`;
+    return;
+  }
+  const sorted = [...S.events].sort((a,b) => b.createdAt - a.createdAt);
+  const rows = sorted.map(e => {
+    const total = e.groups.reduce((n,g) => n + g.people.length, 0);
+    const meta  = [fmtDate(e.date), `${e.groups.length} groups · ${total} people`].filter(Boolean).join(' · ');
+    return `<div class="event-row" onclick="openEvent('${e.id}')">
+      <div class="event-dot">📷</div>
+      <div class="event-info">
+        <div class="event-name">${esc(e.name)}</div>
+        <div class="event-meta">${esc(meta)}</div>
+      </div>
+      <span style="color:#C7C7CC;font-size:17px;">›</span>
+    </div>`;
+  }).join('');
+  el.innerHTML = `<div class="card" style="margin-bottom:16px;">${rows}</div>`;
+}
+
+// ══════════════════════════════════════════
+// SETUP
+// ══════════════════════════════════════════
+function startNew() {
+  alphaNames = [];
+  document.getElementById('setup-name').value = '';
+
+  // FIX: use local calendar date — valueAsDate uses UTC and shows the wrong day for US timezones
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  document.getElementById('setup-date').value =
+    `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+
+  document.getElementById('alpha-preview-wrap').style.display = 'none';
+  document.getElementById('start-btn').disabled = true;
+  document.getElementById('start-hint').style.display = '';
+  push('s-setup');
+  setTimeout(() => document.getElementById('setup-name').focus(), 380);
+}
+
+document.getElementById('setup-name').addEventListener('input', checkStartBtn);
+
+function checkStartBtn() {
+  const hasName  = document.getElementById('setup-name').value.trim().length > 0;
+  const hasAlpha = alphaNames.length > 0;
+  const ok = hasName && hasAlpha;
+  document.getElementById('start-btn').disabled = !ok;
+
+  const hint = document.getElementById('start-hint');
+  if (ok) {
+    hint.style.display = 'none';
+  } else {
+    hint.style.display = '';
+    hint.textContent = !hasAlpha
+      ? 'Add an alpha list above to continue'
+      : 'Enter an event name above to continue';
+  }
+}
+
+function setAlpha(names) {
+  alphaNames = names;
+  renderAlphaPreview();
+  checkStartBtn();
+}
+
+function clearAlpha() {
+  alphaNames = [];
+  document.getElementById('alpha-preview-wrap').style.display = 'none';
+  checkStartBtn();
+}
+
+function renderAlphaPreview() {
+  if (!alphaNames.length) {
+    document.getElementById('alpha-preview-wrap').style.display = 'none';
+    return;
+  }
+  document.getElementById('alpha-preview-wrap').style.display = '';
+  document.getElementById('alpha-count').textContent = `${alphaNames.length} names loaded`;
+  const shown = alphaNames.slice(0, 60);
+  const more  = alphaNames.length > 60
+    ? `<div style="padding:10px 16px;font-size:13px;color:#6C6C70;">…and ${alphaNames.length-60} more</div>`
+    : '';
+  document.getElementById('alpha-preview-list').innerHTML =
+    shown.map((n,i) => `<div class="preview-item">
+      <span class="preview-name">${esc(n.display)}</span>
+      <button class="preview-rm" onclick="removeAlpha(${i})">−</button>
+    </div>`).join('') + more;
+}
+
+function removeAlpha(i) {
+  alphaNames.splice(i, 1);
+  renderAlphaPreview();
+  checkStartBtn();
+}
+
+function createEvent() {
+  const name = document.getElementById('setup-name').value.trim();
+  // Guard: both fields must be satisfied (belt-and-suspenders beyond the disabled state)
+  if (!name || !alphaNames.length) {
+    toast('Add an event name and alpha list first');
+    return;
+  }
+  const e = {
+    id: uid(),
+    name,
+    date: document.getElementById('setup-date').value,
+    alphaList: [...alphaNames],
+    groups: [],
+    createdAt: Date.now()
+  };
+  S.events.unshift(e);
+  save();
+  S.activeId = e.id;
+  renderHome();
+  renderEventScreen();
+  // resetTo is the only safe way: clears all screen state, then activates s-event cleanly.
+  // Manual classList manipulation was unreliable across browsers when screens had mixed classes.
+  resetTo('s-event');
+}
+
+function openEvent(id) {
+  S.activeId = id;
+  renderEventScreen();
+  push('s-event');
+}
+
+// ══════════════════════════════════════════
+// FILE IMPORTS
+// ══════════════════════════════════════════
+function triggerCamera()  { document.getElementById('inp-camera').value='';  document.getElementById('inp-camera').click(); }
+function triggerGallery() { document.getElementById('inp-gallery').value=''; document.getElementById('inp-gallery').click(); }
+function triggerExcel()   { document.getElementById('inp-excel').value='';   document.getElementById('inp-excel').click(); }
+
+// Compute Otsu's optimal binarization threshold from a grayscale histogram.
+// This adapts to each image's unique lighting rather than using a fixed contrast value.
+function otsuThreshold(hist, total) {
+  let sum = 0;
+  for (let i = 0; i < 256; i++) sum += i * hist[i];
+  let sumB = 0, wB = 0, maxVar = 0, threshold = 128;
+  for (let t = 0; t < 256; t++) {
+    wB += hist[t];
+    if (!wB) continue;
+    const wF = total - wB;
+    if (!wF) break;
+    sumB += t * hist[t];
+    const mB = sumB / wB;
+    const mF = (sum - sumB) / wF;
+    const v = wB * wF * (mB - mF) ** 2;
+    if (v > maxVar) { maxVar = v; threshold = t; }
+  }
+  return threshold;
+}
+
+// Upscale → white background → grayscale → Otsu binarization → PNG for Tesseract
+function preprocessForOCR(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+
+      // Scale: upscale small images up to 3×, cap at 3200px wide, never downscale
+      const maxW  = 3200;
+      const scale = img.width < maxW ? Math.min(3, maxW / img.width) : 1;
+      const W = Math.round(img.width  * scale);
+      const H = Math.round(img.height * scale);
+
+      const canvas = document.createElement('canvas');
+      canvas.width  = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      // White background so transparent PNGs don't produce gray text on OCR
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, W, H);
+      ctx.drawImage(img, 0, 0, W, H);
+
+      const imgData = ctx.getImageData(0, 0, W, H);
+      const d = imgData.data;
+      const total = W * H;
+
+      // Pass 1: convert to grayscale and build histogram for Otsu
+      const grayVals = new Uint8Array(total);
+      const hist     = new Int32Array(256);
+      for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+        const g = Math.round(0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]);
+        grayVals[p] = g;
+        hist[g]++;
+      }
+
+      // Otsu's threshold — automatically handles uneven lighting / shadows in photos
+      const thresh = otsuThreshold(hist, total);
+
+      // Pass 2: apply binary threshold (black text on white background)
+      for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+        const v = grayVals[p] > thresh ? 255 : 0;
+        d[i] = d[i+1] = d[i+2] = v;
+        d[i+3] = 255;
+      }
+      ctx.putImageData(imgData, 0, 0);
+
+      canvas.toBlob(blob => {
+        if (blob) resolve(blob);
+        else reject(new Error('Image processing failed — try a different photo'));
+      }, 'image/png');
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not load image')); };
+    img.src = url;
+  });
+}
+
+async function handleImg(input) {
+  const file = input.files[0];
+  if (!file) return;
+  // Reset input value AFTER capturing the file so the same image can be re-selected later
+  input.value = '';
+
+  ocrNames = [];
+  openSheet('sh-ocr');
+  document.getElementById('sh-ocr-title').textContent = 'Reading image…';
+  document.getElementById('ocr-confirm').disabled = true;
+  document.getElementById('sh-ocr-body').innerHTML = `
+    <div style="padding:32px;text-align:center;">
+      <div class="spinner"></div>
+      <div id="ocr-status" style="font-size:15px;color:#6C6C70;">Preparing image…</div>
+    </div>`;
+
+  const setStatus = txt => {
+    const el = document.getElementById('ocr-status');
+    if (el) el.textContent = txt;
+  };
+
+  try {
+    if (typeof Tesseract === 'undefined') {
+      throw new Error('OCR library not loaded. Check your internet connection and try again.');
+    }
+
+    setStatus('Enhancing image…');
+    const processed = await preprocessForOCR(file);
+
+    // Run OCR with PSM 6 (uniform block — best for single-column name lists)
+    const worker = await Tesseract.createWorker('eng', 1, {
+      logger: m => {
+        if (m.status === 'recognizing text')
+          setStatus(`Reading… ${Math.round(m.progress * 100)}%`);
+        else if (m.status === 'loading tesseract core')
+          setStatus('Loading OCR engine…');
+        else if (m.status === 'initializing tesseract')
+          setStatus('Initializing…');
+        else if (m.status === 'loading language traineddata')
+          setStatus('Loading language data…');
+      }
+    });
+
+    await worker.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' });
+    const { data: { text: text6 } } = await worker.recognize(processed);
+    const names6 = parseAlphaText(text6);
+
+    // Fallback: if PSM 6 found fewer than 5 names, try PSM 3 (auto layout detection)
+    // and keep whichever pass found more names
+    let finalNames = names6;
+    if (names6.length < 5) {
+      setStatus('Retrying with auto-layout…');
+      await worker.setParameters({ tessedit_pageseg_mode: '3', preserve_interword_spaces: '1' });
+      const { data: { text: text3 } } = await worker.recognize(processed);
+      const names3 = parseAlphaText(text3);
+      if (names3.length > names6.length) finalNames = names3;
+    }
+
+    await worker.terminate();
+
+    ocrNames = finalNames;
+    renderOCRList();
+
+  } catch (err) {
+    document.getElementById('sh-ocr-body').innerHTML = `
+      <div style="padding:32px;text-align:center;">
+        <div style="font-size:40px;margin-bottom:12px;">⚠️</div>
+        <div style="font-size:16px;font-weight:600;margin-bottom:8px;">Could not read image</div>
+        <div style="font-size:14px;color:#6C6C70;line-height:1.5;">${esc(err.message)}</div>
+        <div style="font-size:13px;color:#6C6C70;margin-top:16px;">Try "Type or Paste Names" instead.</div>
+      </div>`;
+    document.getElementById('sh-ocr-title').textContent = 'Error';
+  }
+}
+
+// FIX: renderOCRList now also updates the confirm button state and title on every render
+function renderOCRList() {
+  const n = ocrNames.length;
+  document.getElementById('sh-ocr-body').innerHTML = n > 0
+    ? `<div class="card" style="margin-bottom:8px;">`
+      + ocrNames.map((nm, i) => `<div class="preview-item">
+          <input value="${esc(nm.display)}" onchange="ocrNames[${i}].display=this.value"
+            style="flex:1;font-size:15px;border:none;border-bottom:1px solid #E5E5EA;outline:none;background:transparent;padding:2px 0;" />
+          <button class="preview-rm" onclick="ocrRemove(${i})">−</button>
+        </div>`).join('')
+      + '</div>'
+    : `<div style="padding:24px;text-align:center;color:#6C6C70;font-size:15px;">No names detected — try adjusting the image or use "Paste Names".</div>`;
+
+  document.getElementById('sh-ocr-title').textContent =
+    n > 0 ? `Review ${n} name${n === 1 ? '' : 's'} — edit if needed` : 'No names found';
+  document.getElementById('ocr-confirm').disabled = n === 0;
+}
+
+function ocrRemove(i) {
+  ocrNames.splice(i, 1);
+  renderOCRList(); // title + button state are updated inside renderOCRList
+}
+
+function confirmOCR() {
+  const names = ocrNames.filter(n => n.display.trim()).map(n => ({...n, display: n.display.trim()}));
+  closeSheet();
+  if (!names.length) { toast('No valid names found'); return; }
+  setAlpha(names);
+  toast(`✓ ${names.length} names imported`);
+}
+
+// FIX: CSV is now routed through XLSX for proper "First Name / Last Name" column detection
+//      instead of naive text parsing which reversed names in standard CSV exports.
+function handleExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  if (ext === 'csv') {
+    const r = new FileReader();
+    r.onload = e => {
+      const text = e.target.result;
+      if (typeof XLSX !== 'undefined') {
+        try {
+          const names = parseWorkbook(XLSX.read(text, {type:'string'}));
+          if (names.length) { setAlpha(names); toast(`✓ ${names.length} names from CSV`); return; }
+        } catch {}
+      }
+      // Fallback: line-by-line text parse
+      const names = parseAlphaText(text);
+      if (!names.length) { toast('No valid names found in CSV'); return; }
+      setAlpha(names); toast(`✓ ${names.length} names from CSV`);
+    };
+    r.readAsText(file);
+
+  } else if (ext === 'txt') {
+    const r = new FileReader();
+    r.onload = e => {
+      const names = parseAlphaText(e.target.result);
+      if (!names.length) { toast('No valid names found'); return; }
+      setAlpha(names); toast(`✓ ${names.length} names from TXT`);
+    };
+    r.readAsText(file);
+
+  } else {
+    // .xlsx / .xls
+    if (typeof XLSX === 'undefined') { toast('Excel reader unavailable — check connection'); return; }
+    const r = new FileReader();
+    r.onload = e => {
+      try {
+        const names = parseWorkbook(XLSX.read(new Uint8Array(e.target.result), {type:'array'}));
+        if (!names.length) { toast('No valid names found in file'); return; }
+        setAlpha(names); toast(`✓ ${names.length} names from Excel`);
+      } catch { toast('Could not read Excel file'); }
+    };
+    r.readAsArrayBuffer(file);
+  }
+}
+
+function confirmPaste() {
+  const text = document.getElementById('paste-ta').value;
+  const names = parseAlphaText(text);
+  closeSheet();
+  if (!names.length) {
+    toast('No names found — use "First Last" or "Last, First" format');
+    return;
+  }
+  setAlpha(names);
+  toast(`✓ ${names.length} names added`);
+}
+
+// ══════════════════════════════════════════
+// PARSING
+// ══════════════════════════════════════════
+function toTitleCase(w) {
+  return w.replace(/\b([a-z])/g, c => c.toUpperCase());
+}
+
+function parseAlphaText(raw) {
+  const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const results = [];
+
+  for (let line of lines) {
+    if (/^(alpha[\s_]*list|first[\s_]*name|last[\s_]*name|group|page\s*[-–]\s*\d+)/i.test(line)) continue;
+    if (/^page\s+\d+/i.test(line)) continue;
+    if (/^\d+$/.test(line)) continue;
+    if (line.length < 3) continue;
+
+    // Strip leading numbering from OCR ("1. ", "2) ")
+    line = line.replace(/^\d+[\.\)]\s+/, '').trim();
+    if (line.length < 3) continue;
+
+    let first = '', last = '';
+
+    // Format A: "Last, First [anything]"
+    const commaMatch = line.match(/^([A-Za-z][A-Za-z'\-]{1,}),\s*([A-Za-z][^\s,]*)(?:\s.*)?$/);
+    if (commaMatch) {
+      last  = commaMatch[1].trim();
+      first = commaMatch[2].trim();
+    } else {
+      // Format B: "First Last   Table N"
+      const tblMatch = line.match(/^(.+?)\s{2,}(?:Table|Tbl)\s+\d+\s*\*?\s*$/i)
+                    || line.match(/^(.+?)\s+(?:Table|Tbl)\s+\d+\s*\*?\s*$/i);
+      if (tblMatch) {
+        const words = tblMatch[1].trim().split(/\s+/);
+        if (words.length < 2) continue;
+        first = words[0];
+        last  = words.slice(1).join(' ');
+      } else {
+        // Format C: plain "First Last" (2–8 words)
+        const words = line.split(/\s+/);
+        if (words.length < 2 || words.length > 8) continue;
+        first = words[0];
+        last  = words.slice(1).join(' ');
+      }
+    }
+
+    if (!first || !last) continue;
+
+    first = toTitleCase(first.toLowerCase());
+    last  = toTitleCase(last.toLowerCase());
+
+    if (/^(First|Last|Group|Table|Tbl|Name|Page|Alpha|No|Num|Date)$/.test(first)) continue;
+    if (!/^[A-Za-z]/.test(first) || !/^[A-Za-z]/.test(last)) continue;
+    if (first.length < 2 || last.length < 2) continue;
+    if ((first + last).replace(/[^a-zA-Z]/g, '').length < 4) continue;
+
+    results.push({ first, last, display: `${first} ${last}`, table: '' });
+  }
+
+  const seen = new Set();
+  return results
+    .filter(n => { const k = n.display.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; })
+    .sort((a, b) => a.last.localeCompare(b.last) || a.first.localeCompare(b.first));
+}
+
+// FIX: unified workbook parser for both .xlsx and .csv (via XLSX.read)
+//      Detects "First Name" / "Last Name" column headers automatically.
+function parseWorkbook(wb) {
+  const ws   = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, defval:''});
+
+  let fCol = 0, lCol = 1, start = 0;
+
+  for (let i = 0; i < Math.min(5, rows.length); i++) {
+    const r = rows[i].map(c => String(c).toLowerCase().trim());
+    const fi = r.findIndex(c => /\bfirst\b/.test(c) || c === 'fname' || c === 'f name');
+    const li = r.findIndex(c => /\blast\b/.test(c)  || c === 'lname' || c === 'l name' || c === 'surname');
+    if (fi >= 0 && li >= 0) { fCol = fi; lCol = li; start = i + 1; break; }
+    // Single "name" / "full name" column
+    const ni = r.findIndex(c => c === 'name' || c === 'full name' || c === 'fullname');
+    if (ni >= 0) { fCol = ni; lCol = -1; start = i + 1; break; }
+  }
+
+  const names = [];
+  for (let i = start; i < rows.length; i++) {
+    const row = rows[i];
+
+    if (lCol === -1) {
+      // Parse full-name column as text
+      const raw = String(row[fCol] || '').trim().replace(/^["']|["']$/g, '');
+      if (raw) names.push(...parseAlphaText(raw));
+      continue;
+    }
+
+    const f = String(row[fCol] || '').trim().replace(/^["']|["']$/g, '');
+    const l = String(row[lCol] || '').trim().replace(/^["']|["']$/g, '');
+    if (!f || !l) continue;
+    if (/^(first|last|name|group|alpha|fname|lname)/i.test(f)) continue;
+    names.push({ first: f, last: l, display: `${f} ${l}`, table: '' });
+  }
+
+  return names.sort((a, b) => a.last.localeCompare(b.last) || a.first.localeCompare(b.first));
+}
+
+// ══════════════════════════════════════════
+// EVENT SCREEN
+// ══════════════════════════════════════════
+function renderEventScreen() {
+  const e = ev(); if (!e) return;
+  document.getElementById('ev-nav-title').textContent = e.name;
+  renderStats();
+  renderGroups();
+}
+
+function renderStats() {
+  const e = ev(); if (!e) return;
+  const total   = e.groups.reduce((n,g) => n + g.people.length, 0);
+  const walkins = e.groups.reduce((n,g) => n + g.people.filter(p => p.walkin).length, 0);
+  document.getElementById('ev-stats').innerHTML = `
+    <div class="stat"><div class="n">${e.groups.length}</div><div class="l">Groups</div></div>
+    <div class="stat"><div class="n">${total}</div><div class="l">People</div></div>
+    <div class="stat"><div class="n">${walkins}</div><div class="l">Walk-ins</div></div>
+    <div class="stat"><div class="n">${e.alphaList.length}</div><div class="l">On List</div></div>`;
+}
+
+function renderGroups() {
+  const e    = ev(); if (!e) return;
+  const wrap  = document.getElementById('groups-wrap');
+  const empty = document.getElementById('groups-empty');
+  if (!e.groups.length) {
+    empty.style.display = '';
+    wrap.querySelectorAll('.group-card').forEach(c => c.remove());
+    return;
+  }
+  empty.style.display = 'none';
+  wrap.querySelectorAll('.group-card').forEach(c => c.remove());
+  e.groups.forEach((g, gi) => {
+    const card = document.createElement('div');
+    card.className = 'group-card';
+    card.id = `gc-${gi}`;
+    card.innerHTML = groupHTML(g, gi);
+    wrap.insertBefore(card, empty);
+  });
+}
+
+function groupHTML(g, gi) {
+  const people = g.people.map((p, pi) => `
+    <div class="person-row" id="pr-${gi}-${pi}">
+      <div class="avatar">${esc(initials(p.name))}</div>
+      <div class="person-info">
+        <span class="person-name">${esc(p.name)}</span>
+        ${p.walkin ? '<span class="badge badge-walkin">walk-in</span>' : ''}
+      </div>
+      <div class="p-actions">
+        <button class="p-btn" onclick="editPerson(${gi},${pi})">Edit</button>
+        <button class="p-btn del" onclick="delPerson(${gi},${pi})">✕</button>
+      </div>
+    </div>`).join('');
+
+  return `
+    <div class="group-head">
+      <div class="group-num">${gi+1}</div>
+      <input class="group-lbl" value="${esc(g.label)}"
+        onchange="renameGroup(${gi},this.value)"
+        autocapitalize="words" />
+      <button class="group-del" onclick="delGroup(${gi})">Delete</button>
+    </div>
+    ${people || '<div style="padding:10px 16px;font-size:13px;color:#6C6C70;">No one added yet</div>'}
+    <button class="add-btn" onclick="openSearch(${gi})">
+      <span style="font-size:18px;line-height:1;">+</span> Add person
+    </button>`;
+}
+
+function refreshCard(gi) {
+  const e = ev(); if (!e || !e.groups[gi]) return;
+  const el = document.getElementById(`gc-${gi}`);
+  if (el) el.innerHTML = groupHTML(e.groups[gi], gi);
+}
+
+function newGroup() {
+  const e = ev(); if (!e) return;
+  const num = e.groups.length + 1;
+  e.groups.push({ id: uid(), label: `Photo group ${num}`, people: [] });
+  save();
+  renderGroups();
+  renderStats();
+  const gi = e.groups.length - 1;
+  setTimeout(() => {
+    const card = document.getElementById(`gc-${gi}`);
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    openSearch(gi);
+  }, 80);
+}
+
+function delGroup(gi) {
+  if (!confirm('Delete this photo group?')) return;
+  const e = ev();
+  e.groups.splice(gi, 1);
+  e.groups.forEach((g, i) => { if (/^Photo group \d+$/.test(g.label)) g.label = `Photo group ${i+1}`; });
+  save(); renderGroups(); renderStats();
+}
+
+function renameGroup(gi, val) {
+  const e = ev(); if (!e || !e.groups[gi]) return;
+  e.groups[gi].label = val; save();
+}
+
+function delPerson(gi, pi) {
+  const e = ev();
+  e.groups[gi].people.splice(pi, 1);
+  save(); refreshCard(gi); renderStats();
+  if (activeSheet === 'sh-search') renderSearch(document.getElementById('search-q').value);
+}
+
+function editPerson(gi, pi) {
+  const e = ev();
+  const p = e.groups[gi].people[pi];
+  const row = document.getElementById(`pr-${gi}-${pi}`);
+  if (!row) return;
+  row.innerHTML = `
+    <div class="avatar">${esc(initials(p.name))}</div>
+    <input id="ei-${gi}-${pi}" class="person-name-input" value="${esc(p.name)}"
+      onkeydown="if(event.key==='Enter')saveEdit(${gi},${pi})"
+      autocorrect="off" autocapitalize="words" spellcheck="false" />
+    <button class="p-btn" onclick="saveEdit(${gi},${pi})">Save</button>
+    <button class="p-btn" onclick="refreshCard(${gi})">Cancel</button>`;
+  setTimeout(() => {
+    const inp = document.getElementById(`ei-${gi}-${pi}`);
+    if (inp) { inp.focus(); inp.select(); }
+  }, 40);
+}
+
+function saveEdit(gi, pi) {
+  const inp = document.getElementById(`ei-${gi}-${pi}`);
+  if (!inp) return;
+  const name = inp.value.trim();
+  if (!name) return;
+  ev().groups[gi].people[pi].name = name;
+  save(); refreshCard(gi);
+}
+
+// ══════════════════════════════════════════
+// SEARCH
+// ══════════════════════════════════════════
+function openSearch(gi) {
+  S.activeGroup = gi;
+  const e = ev();
+  document.getElementById('sh-search-title').textContent = `Add to ${e.groups[gi].label}`;
+  document.getElementById('search-q').value = '';
+  renderSearch('');
+  openSheet('sh-search');
+  setTimeout(() => document.getElementById('search-q').focus(), 440);
+}
+
+function onSearch() { renderSearch(document.getElementById('search-q').value); }
+
+// FIX: corrected off-by-one in fuzzy window (was <=length+1, now <=length)
+//      Added guard for empty string after trim so whitespace-only input returns 60
+function score(q, t) {
+  if (!q) return 60;
+  const lq = q.toLowerCase().trim();
+  if (!lq) return 60;
+  const lt = t.toLowerCase();
+  if (lt === lq) return 100;
+  if (lt.startsWith(lq)) return 95;
+  if (lt.includes(' ' + lq)) return 90;
+  if (lt.includes(lq)) return 75;
+  if (lq.length >= 3) {
+    for (let i = 0; i <= lt.length - lq.length; i++) {
+      const sl = lt.slice(i, i + lq.length);
+      let d = 0;
+      for (let j = 0; j < lq.length; j++) if (sl[j] !== lq[j]) d++;
+      if (d <= 1) return 55;
+    }
+  }
+  return 0;
+}
+
+function highlight(name, q) {
+  if (!q) return esc(name);
+  const i = name.toLowerCase().indexOf(q.toLowerCase());
+  if (i < 0) return esc(name);
+  return esc(name.slice(0,i)) + '<mark>' + esc(name.slice(i,i+q.length)) + '</mark>' + esc(name.slice(i+q.length));
+}
+
+function renderSearch(q) {
+  const e = ev();
+  if (!e || S.activeGroup === null) return;
+  const gi = S.activeGroup;
+  const inGroup = e.groups[gi].people.map(p => p.name.toLowerCase());
+
+  const results = e.alphaList
+    .map(p => ({ ...p, sc: Math.max(score(q, p.last), score(q, p.first), score(q, p.display)) }))
+    .filter(p => p.sc > 0)
+    .sort((a, b) => b.sc - a.sc || a.last.localeCompare(b.last))
+    .slice(0, 25);
+
+  let html = '';
+  if (results.length) {
+    html += '<div class="card" style="margin:0 16px 12px;">';
+    html += results.map(p => {
+      const already = inGroup.includes(p.display.toLowerCase());
+      const onclick = already ? '' : `addPerson(${gi},'${esc2(p.display)}',false)`;
+      return `<div class="result-row" onclick="${onclick}">
+        <div class="r-avatar alpha">${esc(initials(p.display))}</div>
+        <div class="r-info">
+          <div class="r-name">${highlight(p.display, q)}</div>
+          ${p.table ? `<div class="r-sub">${esc(p.table)}</div>` : ''}
+        </div>
+        ${already ? '<span class="r-done">In group</span>' : '<span class="r-add">+</span>'}
+      </div>`;
+    }).join('');
+    html += '</div>';
+  }
+
+  if (q.trim()) {
+    html += `<div style="padding:0 16px 8px;">
+      <div style="font-size:12px;color:#6C6C70;margin-bottom:6px;padding-left:2px;">Not on the alpha list?</div>
+      <div class="card">
+        <div class="result-row" onclick="addPerson(${gi},'${esc2(q.trim())}',true)">
+          <div class="r-avatar walkin">?</div>
+          <div class="r-info">
+            <div class="r-name">"${esc(q.trim())}"</div>
+            <div class="r-sub">Add as walk-in · flagged in export</div>
+          </div>
+          <span class="r-add">+</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  if (!html) {
+    html = '<div style="padding:40px;text-align:center;color:#6C6C70;font-size:15px;">Start typing a last name…</div>';
+  }
+  document.getElementById('search-body').innerHTML = html;
+}
+
+function addPerson(gi, name, isWalkin) {
+  const e = ev(); if (!e || !e.groups[gi]) return;
+  if (e.groups[gi].people.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+    toast('Already in this group'); return;
+  }
+  e.groups[gi].people.push({ name, walkin: isWalkin, note: '' });
+  save(); refreshCard(gi); renderStats();
+  renderSearch(document.getElementById('search-q').value);
+  toast(isWalkin ? `"${name}" added as walk-in` : `Added ${name}`);
+}
+
+// ══════════════════════════════════════════
+// EXPORT
+// ══════════════════════════════════════════
+function buildExport() {
+  const e = ev(); if (!e) return '';
+  const lines = ['Photo #\tFirst / Last Name:\tNotes:'];
+  e.groups.forEach((g, gi) => {
+    if (!g.people.length) { lines.push(`${gi+1}\t(empty group)\t`); return; }
+    g.people.forEach((p, pi) => {
+      const num  = pi === 0 ? gi + 1 : '';
+      const note = p.walkin ? 'Not on Alpha List' : (p.note || '');
+      lines.push(`${num}\t${p.name}\t${note}`);
+    });
+  });
+  const txt = lines.join('\n');
+  document.getElementById('export-text').textContent = txt;
+  return txt;
+}
+
+function copyExport() {
+  const txt = document.getElementById('export-text').textContent;
+  if (!txt) return;
+  navigator.clipboard.writeText(txt).then(() => {
+    const b = document.getElementById('copy-btn');
+    b.textContent = 'Copied!';
+    toast('✓ Copied — paste into Excel');
+    setTimeout(() => b.textContent = 'Copy', 2000);
+  }).catch(() => toast('Select the text below and copy manually'));
+}
+
+function downloadFile() {
+  const e    = ev();
+  const txt  = document.getElementById('export-text').textContent;
+  const blob = new Blob([txt], {type:'text/plain'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `${(e?.name || 'event').replace(/[^a-z0-9]/gi, '_')}_export.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('✓ Downloading…');
+}
+
+// ══════════════════════════════════════════
+// SERVICE WORKER
+// ══════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', {scope:'./'}).catch(() => {});
+  });
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+load();
+renderHome();
+</script>
+</body>
+</html>
