@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="LOOK Events">
+  <meta name="theme-color" content="#f2f2f7">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icon.svg">
+  <link rel="stylesheet" href="./css/styles.css">
+  <title>LOOK Events</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script type="module" src="./js/app.js"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- Home -->
+    <section id="s-home" class="screen active" aria-labelledby="home-title">
+      <div class="home-head">
+        <h1 id="home-title" class="large-title">Events</h1>
+        <button id="home-new" class="nav-btn" type="button">New</button>
+      </div>
+      <main class="content">
+        <div id="home-list"></div>
+      </main>
+    </section>
+
+    <!-- New event setup -->
+    <section id="s-setup" class="screen" aria-labelledby="setup-title">
+      <header class="nav">
+        <div class="nav-side">
+          <button id="setup-back" class="nav-btn" type="button">‹ Back</button>
+        </div>
+        <div id="setup-title" class="nav-title">New Event</div>
+        <div class="nav-side right"></div>
+      </header>
+      <main class="content">
+        <div class="setup-form">
+          <div class="field">
+            <label for="event-name">Event name</label>
+            <input id="event-name" class="text-input" type="text" autocomplete="off" required>
+          </div>
+          <div class="field">
+            <label for="event-date">Date</label>
+            <input id="event-date" class="date-input" type="date">
+          </div>
+        </div>
+
+        <h2 class="section-title">Import Alpha Guest List</h2>
+        <div class="card import-grid">
+          <button id="take-photo-btn" class="import-btn" type="button">
+            <span>Take Photo of List</span>
+            <span aria-hidden="true">›</span>
+          </button>
+          <button id="choose-photo-btn" class="import-btn" type="button">
+            <span>Choose Photo of List</span>
+            <span aria-hidden="true">›</span>
+          </button>
+          <button id="file-import-btn" class="import-btn" type="button">
+            <span>Import Excel or CSV</span>
+            <span aria-hidden="true">›</span>
+          </button>
+          <button id="paste-open-btn" class="import-btn" type="button">
+            <span>Type or Paste Names</span>
+            <span aria-hidden="true">›</span>
+          </button>
+        </div>
+
+        <p id="setup-error" class="setup-error" role="alert"></p>
+
+        <div id="preview-wrap" hidden>
+          <div class="preview-head">
+            <div id="preview-count" class="preview-count">0 names loaded</div>
+            <button id="clear-alpha-btn" class="clear-btn" type="button">Clear</button>
+          </div>
+          <div id="alpha-preview" class="card preview-list"></div>
+        </div>
+
+        <div style="height: 18px;"></div>
+
+        <button id="start-event-btn" class="primary-btn" type="button" disabled>Start Event</button>
+      </main>
+    </section>
+
+    <!-- Active event -->
+    <section id="s-event" class="screen" aria-labelledby="event-title">
+      <header class="nav">
+        <div class="nav-side">
+          <button id="event-back" class="nav-btn" type="button">‹ Events</button>
+        </div>
+        <div id="event-title" class="nav-title">Event</div>
+        <div class="nav-side right">
+          <button id="event-export" class="nav-btn" type="button">Export</button>
+        </div>
+      </header>
+
+      <div class="stats" aria-label="Event stats">
+        <div class="stat">
+          <div id="stat-groups" class="stat-value">0</div>
+          <div class="stat-label">Groups</div>
+        </div>
+        <div class="stat">
+          <div id="stat-people" class="stat-value">0</div>
+          <div class="stat-label">People</div>
+        </div>
+        <div class="stat">
+          <div id="stat-walkins" class="stat-value">0</div>
+          <div class="stat-label">Walk-ins</div>
+        </div>
+        <div class="stat">
+          <div id="stat-onlist" class="stat-value">0</div>
+          <div class="stat-label">On List</div>
+        </div>
+      </div>
+
+      <main class="content event-content">
+        <div id="groups-container" class="groups"></div>
+      </main>
+
+      <button id="new-group-btn" class="fab" type="button" hidden>+ New Photo Group</button>
+    </section>
+
+    <!-- Export -->
+    <section id="s-export" class="screen" aria-labelledby="export-title">
+      <header class="nav">
+        <div class="nav-side">
+          <button id="export-back" class="nav-btn" type="button">‹ Back</button>
+        </div>
+        <div id="export-title" class="nav-title">Export</div>
+        <div class="nav-side right"></div>
+      </header>
+      <main class="content">
+        <p class="export-copy">Copy the report or download it as a text file.</p>
+        <pre id="export-preview" class="export-preview" aria-label="Export preview"></pre>
+        <div class="sheet-actions">
+          <button id="copy-export-btn" class="primary-btn" type="button">Copy to Clipboard</button>
+          <button id="download-export-btn" class="secondary-btn" type="button">Download .txt</button>
+        </div>
+      </main>
+    </section>
+  </div>
+
+  <!-- Sheets -->
+  <div id="sheet-overlay" class="sheet-overlay" hidden></div>
+
+  <section id="sheet-search" class="sheet" role="dialog" aria-modal="true" aria-labelledby="search-title" hidden>
+    <header class="sheet-head">
+      <div class="nav-side"></div>
+      <div id="search-title" class="sheet-title">Add to Group</div>
+      <div class="nav-side right">
+        <button id="search-done" class="nav-btn" type="button">Done</button>
+      </div>
+    </header>
+    <div class="sheet-body">
+      <label class="visually-hidden" for="person-search">Search guest list</label>
+      <input id="person-search" class="search-input" type="text" autocomplete="off" placeholder="Search guest list...">
+      <div id="search-results" class="results"></div>
+    </div>
+  </section>
+
+  <section id="sheet-ocr" class="sheet" role="dialog" aria-modal="true" aria-labelledby="ocr-title" hidden>
+    <header class="sheet-head">
+      <div class="nav-side">
+        <button id="ocr-cancel" class="nav-btn" type="button">Cancel</button>
+      </div>
+      <div id="ocr-title" class="sheet-title">Reading image...</div>
+      <div></div>
+    </header>
+    <div class="sheet-body">
+      <div id="ocr-processing" class="ocr-status">
+        <div class="spinner" aria-hidden="true"></div>
+        <div id="ocr-progress">Loading OCR engine...</div>
+      </div>
+      <p id="ocr-error" class="ocr-error" role="alert"></p>
+      <div id="ocr-review" hidden>
+        <div id="ocr-list" class="ocr-list"></div>
+        <div class="sheet-actions">
+          <button id="ocr-use" class="primary-btn" type="button" disabled>Use These Names</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="sheet-paste" class="sheet" role="dialog" aria-modal="true" aria-labelledby="paste-title" hidden>
+    <header class="sheet-head">
+      <div class="nav-side">
+        <button id="paste-cancel" class="nav-btn" type="button">Cancel</button>
+      </div>
+      <div id="paste-title" class="sheet-title">Type or Paste Names</div>
+      <div></div>
+    </header>
+    <div class="sheet-body">
+      <label class="visually-hidden" for="paste-text">Names</label>
+      <textarea id="paste-text" class="textarea"></textarea>
+      <p class="muted">One name per line. Example: Jane Smith</p>
+      <div class="sheet-actions">
+        <button id="paste-add" class="primary-btn" type="button">Add Names</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <input id="camera-input" class="visually-hidden" type="file" accept="image/*" capture="environment" aria-label="Take photo of list">
+  <input id="photo-input" class="visually-hidden" type="file" accept="image/*" aria-label="Choose photo of list">
+  <input id="file-input" class="visually-hidden" type="file" accept=".xlsx,.xls,.csv,.txt" aria-label="Import Excel or CSV">
+</body>
+</html>
