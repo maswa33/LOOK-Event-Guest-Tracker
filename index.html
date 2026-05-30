@@ -1082,7 +1082,7 @@ function renderSearchResults(groupId, query) {
   }
 
   resultsEl.innerHTML = results.map((r, i) =>
-    `<div class="search-result-item" onclick="selectGuest('${groupId}', ${i}, ${JSON.stringify(JSON.stringify(r))})">
+    `<div class="search-result-item" onclick="selectGuest('${groupId}', ${i})">
       <div class="sri-name">${esc(r.display)}</div>
     </div>`
   ).join('');
