@@ -271,7 +271,26 @@
     gap: 10px;
   }
   .guest-row:last-child { border-bottom: none; }
-  .guest-name { font-size: 15px; flex: 1; }
+  .guest-name { font-size: 15px; }
+  .guest-info { flex: 1; cursor: pointer; min-width: 0; }
+  .guest-note { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .guest-note-add { font-size: 12px; color: var(--blue); margin-top: 2px; }
+  .guest-reorder-btns { display: flex; flex-direction: column; }
+  .btn-move-guest {
+    background: none; border: none;
+    color: var(--text3); font-size: 15px;
+    padding: 1px 5px; cursor: pointer; line-height: 1.3;
+  }
+  .btn-move-guest:active { color: var(--blue); }
+  .btn-move-ph { display: block; height: 20px; width: 26px; }
+  .btn-download-csv {
+    width: 100%;
+    background: var(--green); color: #fff;
+    border: none; border-radius: 12px;
+    padding: 14px; font-size: 17px; font-weight: 700;
+    cursor: pointer; margin-top: 8px;
+  }
+  .btn-download-csv:active { opacity: 0.85; }
   .tag-walkin {
     background: #FFF3CD; color: #856404;
     font-size: 11px; font-weight: 700;
@@ -662,12 +681,44 @@
   </div>
 </div>
 
+<!-- Walk-in sheet -->
+<div class="bottom-sheet" id="sheet-walkin">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Add Walk-in Guest</div>
+  <div class="field-label">Name</div>
+  <input type="text" class="field-input" id="walkin-name-input"
+    placeholder="First Last" autocapitalize="words" autocorrect="off"
+    onkeydown="if(event.key==='Enter')confirmWalkin()">
+  <div class="field-label">Note (optional)</div>
+  <input type="text" class="field-input" id="walkin-note-input"
+    placeholder="e.g. Table 5, VIP" autocorrect="off"
+    onkeydown="if(event.key==='Enter')confirmWalkin()">
+  <div class="sheet-actions">
+    <button class="btn-sheet-cancel" onclick="closeAllSheets()">Cancel</button>
+    <button class="btn-sheet-go" onclick="confirmWalkin()">Add Walk-in</button>
+  </div>
+</div>
+
+<!-- Note edit sheet -->
+<div class="bottom-sheet" id="sheet-note">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="note-sheet-title">Guest Note</div>
+  <input type="text" class="field-input" id="note-edit-input"
+    placeholder="Add a note…" autocorrect="off"
+    onkeydown="if(event.key==='Enter')confirmNoteEdit()">
+  <div class="sheet-actions">
+    <button class="btn-sheet-cancel" onclick="closeAllSheets()">Cancel</button>
+    <button class="btn-sheet-go" onclick="confirmNoteEdit()">Save</button>
+  </div>
+</div>
+
 <!-- Export sheet -->
 <div class="bottom-sheet" id="sheet-export">
   <div class="sheet-handle"></div>
   <div class="sheet-title">Export</div>
   <textarea class="export-textarea" id="export-textarea" readonly></textarea>
   <button class="btn-copy-export" onclick="copyExport()">Copy to Clipboard</button>
+  <button class="btn-download-csv" onclick="downloadCSV()">Download as CSV</button>
   <button class="btn-sheet-cancel" style="width:100%;margin-top:10px" onclick="closeAllSheets()">Done</button>
 </div>
 
@@ -907,17 +958,98 @@ function removeGuest(groupId, guestIdx) {
   updateStats();
 }
 
+let walkinGroupId = null;
+
 function addWalkin(groupId) {
+  walkinGroupId = groupId;
+  document.getElementById('walkin-name-input').value = '';
+  document.getElementById('walkin-note-input').value = '';
+  openSheet('sheet-walkin');
+  setTimeout(() => document.getElementById('walkin-name-input').focus(), 150);
+}
+
+function confirmWalkin() {
+  const name = document.getElementById('walkin-name-input').value.trim();
+  if (!name) { toast('Enter a name'); return; }
+  const note = document.getElementById('walkin-note-input').value.trim();
+
   const ev = currentEvent();
-  const g = ev.groups.find(x => x.id === groupId);
+  const g = ev.groups.find(x => x.id === walkinGroupId);
   if (!g) return;
-  const name = prompt('Walk-in name (First Last):');
-  if (!name || !name.trim()) return;
-  g.guests.push({ name: name.trim(), walkin: true });
+
+  g.guests.push({ name, walkin: true, note: note || '' });
   saveState();
+  closeAllSheets();
   renderGroups();
   updateStats();
   toast('Walk-in added');
+}
+
+function moveGuest(groupId, idx, dir) {
+  const ev = currentEvent();
+  const g = ev.groups.find(x => x.id === groupId);
+  if (!g) return;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= g.guests.length) return;
+  const tmp = g.guests[idx];
+  g.guests[idx] = g.guests[newIdx];
+  g.guests[newIdx] = tmp;
+  saveState();
+  renderGroups();
+}
+
+let noteEditTarget = null;
+
+function editGuestNote(groupId, guestIdx) {
+  const ev = currentEvent();
+  const g = ev.groups.find(x => x.id === groupId);
+  if (!g) return;
+  const guest = g.guests[guestIdx];
+  if (!guest) return;
+  noteEditTarget = { groupId, guestIdx };
+  document.getElementById('note-sheet-title').textContent = guest.name;
+  document.getElementById('note-edit-input').value = guest.note || '';
+  openSheet('sheet-note');
+  setTimeout(() => document.getElementById('note-edit-input').focus(), 150);
+}
+
+function confirmNoteEdit() {
+  if (!noteEditTarget) return;
+  const note = document.getElementById('note-edit-input').value.trim();
+  const ev = currentEvent();
+  const g = ev.groups.find(x => x.id === noteEditTarget.groupId);
+  if (!g) return;
+  const guest = g.guests[noteEditTarget.guestIdx];
+  if (!guest) return;
+  guest.note = note;
+  saveState();
+  closeAllSheets();
+  renderGroups();
+  noteEditTarget = null;
+}
+
+function downloadCSV() {
+  const ev = currentEvent();
+  if (!ev) return;
+  let lines = ['"Photo #","Name","Walk-in","Notes"'];
+  ev.groups.forEach((g, gi) => {
+    if (g.guests.length === 0) return;
+    g.guests.forEach(guest => {
+      const walkin = guest.walkin ? 'Yes' : '';
+      const note = (guest.note || '').replace(/"/g, '""');
+      const name = (guest.name || '').replace(/"/g, '""');
+      lines.push(`"${gi + 1}","${name}","${walkin}","${note}"`);
+    });
+  });
+  const csv = lines.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (ev.name || 'event').replace(/[^a-z0-9]/gi, '_') + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('CSV downloaded!');
 }
 
 // activeSearch tracks which group's search box is focused
@@ -950,7 +1082,7 @@ function renderSearchResults(groupId, query) {
   }
 
   resultsEl.innerHTML = results.map((r, i) =>
-    `<div class="search-result-item" onclick="selectGuest('${groupId}', ${i}, ${JSON.stringify(JSON.stringify(r))})">
+    `<div class="search-result-item" onclick="selectGuest('${groupId}', ${i})">
       <div class="sri-name">${esc(r.display)}</div>
     </div>`
   ).join('');
@@ -975,11 +1107,17 @@ function selectGuest(groupId, idx, _unused) {
     return;
   }
 
-  g.guests.push({ name: guest.display, walkin: false });
+  g.guests.push({ name: guest.display, walkin: false, note: '' });
   saveState();
   renderGroups();
   updateStats();
   toast('Added: ' + guest.display);
+
+  // Re-focus the search box so the next name can be typed immediately
+  setTimeout(() => {
+    const inp = document.getElementById('si-' + groupId);
+    if (inp) inp.focus();
+  }, 50);
 }
 
 function renderGroups() {
@@ -996,13 +1134,26 @@ function renderGroups() {
   }
 
   el.innerHTML = ev.groups.map((g, gi) => {
-    const guestsHTML = g.guests.map((guest, xi) =>
-      `<div class="guest-row">
-        <div class="guest-name">${esc(guest.name)}</div>
+    const guestsHTML = g.guests.map((guest, xi) => {
+      const noteHTML = guest.note
+        ? `<div class="guest-note">${esc(guest.note)}</div>`
+        : '<div class="guest-note-add">＋ note</div>';
+      const upBtn = xi > 0
+        ? `<button class="btn-move-guest" onclick="moveGuest('${g.id}',${xi},-1)">↑</button>`
+        : '<span class="btn-move-ph"></span>';
+      const downBtn = xi < g.guests.length - 1
+        ? `<button class="btn-move-guest" onclick="moveGuest('${g.id}',${xi},1)">↓</button>`
+        : '<span class="btn-move-ph"></span>';
+      return `<div class="guest-row">
+        <div class="guest-info" onclick="editGuestNote('${g.id}',${xi})">
+          <div class="guest-name">${esc(guest.name)}</div>
+          ${noteHTML}
+        </div>
         ${guest.walkin ? '<span class="tag-walkin">Walk-in</span>' : ''}
-        <button class="btn-remove-guest" onclick="removeGuest('${g.id}', ${xi})">−</button>
-      </div>`
-    ).join('');
+        <div class="guest-reorder-btns">${upBtn}${downBtn}</div>
+        <button class="btn-remove-guest" onclick="removeGuest('${g.id}',${xi})">−</button>
+      </div>`;
+    }).join('');
 
     return `<div class="group-card" id="gc-${g.id}">
       <div class="group-header">
@@ -1308,13 +1459,14 @@ function openExport() {
   if (!ev) return;
 
   let lines = [];
-  lines.push('Photo #\tName\tNotes');
+  lines.push('Photo #\tName\tWalk-in\tNotes');
 
   ev.groups.forEach((g, gi) => {
-    if (g.guests.length === 0) return; // skip empty groups
+    if (g.guests.length === 0) return;
     g.guests.forEach(guest => {
-      const notes = guest.walkin ? 'Walk-in' : '';
-      lines.push(`${gi + 1}\t${guest.name}\t${notes}`);
+      const walkin = guest.walkin ? 'Walk-in' : '';
+      const note = guest.note || '';
+      lines.push(`${gi + 1}\t${guest.name}\t${walkin}\t${note}`);
     });
   });
 
